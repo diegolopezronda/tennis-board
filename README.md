@@ -2,8 +2,42 @@
 Tennis Board for Raspberry Pi.
 
 # Usage
+* These are the final user instructions.
+* These instructions are valid when the installation is complete and the device has been rebooted and connected to a screen.
 
+## The Board
+![Tennis Board Screenshot](tennis-board.png)
 
+The board is a tennis display, that allows you to set titles, players names, a match clock and, calculate and displaying scores following Standard and Grand Slam rules. It can be configured remotely by another device like a computer, tablet or phone via the web browser.
+
+### Access to the board
+Assuming you are in the same network please enter `http://raspberrypi` on your browser.
+
+### Controls
+
+1. **Title:** Displays the name of the event. Click and type the title of the event. When you are done click enter.
+2. **Match Types:** Display the rules currently in use. Click to toggle among different types of match rules. You can choose between:
+  * SD: Standard/Normal. Race to 2 sets. Includes advantage, and tie breaks at 6-6.
+  * US: US Open. Race to 3 sets. Includes advantage, and tie breaks at 6-6.
+  * AU: Australia Open. Race to 3 sets. Includes advantage, and tie breaks at 6-6.
+  * RG: Roland Garros. Race to 3 sets. Includes advantage, and tie breaks at 6-6. 5th set doesn't have tie break; winner defined by difference of two games.
+  * WB: Wimbledon. Race to 3 sets. Includes advantage, and tie breaks at 6-6. 5th set has tie break at 12-12.
+3. **Match Clock**: Display the time elapsed since the start of the game. Click to reset.
+4. **Serve Switch**: Toggles the player at serve (See A). Click to switch between players.
+5. **Player Name**: Displays the name of the player. Click and type the name of the player. When you are done click enter.
+6. **Points**: Display the points of the player. Click to add a point. It automatically calculates and displays advantage and tie break.
+7. **Clock and Reset**: It displays the current date and time. Tap 3 times in less than a second to reset the entire game.
+
+### Displays
+
+  A. **Serve**: Displays who is serving. It toggles automatically between players depending of the situation.
+  * \* (star): Shows the player serving in a normal game.
+  * T : Shows the player serving in a tie break game.
+  * W : Show the winner. All the controls but (7) are disabled when this symbol is displaying.
+    
+  B. **Game and Set**: Displays the number of sets associated with the score, and also indicates where the game points are located.
+
+  C. **Sets**: Displays the score for each set, for each player.
 
 # Installation
 These instructions where tested on Raspbian Lite 32 on a Raspberry Pi 3 B. 
