@@ -42,6 +42,9 @@ The board is a tennis display, that allows you to set titles, players names, a m
 
   C. **Sets**: Displays the score for each set, for each player.
 
+### Power off
+* Just disconect the device from power and you are done.
+
 # Installation
 These instructions where tested on Raspbian Lite 32 on a Raspberry Pi 3 B. 
 
