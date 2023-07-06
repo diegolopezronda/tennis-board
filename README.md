@@ -11,7 +11,10 @@ Tennis Board for Raspberry Pi.
 The board is a tennis display, that allows you to set titles, players names, a match clock and, calculate and displaying scores following Standard and Grand Slam rules. It can be configured remotely by another device like a computer, tablet or phone via the web browser.
 
 ### Access to the board
-Assuming you are in the same network please enter `http://raspberrypi` on your browser.
+* Plug the machine to a TV or HDMI compatible screen.
+* Plug the machine to power.
+* Wait until the board is showing on the screen (yeah, it's a small device, so give it around 3 minutes).
+* Assuming you are in the same network, please user your phone/table/computer browser to enter `http://raspberrypi`, you will be able to control the board from there.
 
 ### Controls
 
