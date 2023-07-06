@@ -1,7 +1,14 @@
-# tennis-board
-Tennis Board for Raspberry Pi
+# Tennis Board
+Tennis Board for Raspberry Pi.
 
-# Dependencies
+# Usage
+
+
+
+# Installation
+These instructions where tested on Raspbian Lite 32 on a Raspberry Pi 3 B. 
+
+## Dependencies
 
 * NGINX
 * Mosquitto
@@ -9,16 +16,13 @@ Tennis Board for Raspberry Pi
 
 Please execute 
 
-
 ```
 sudo apt update; sudo apt upgrade; sudo apt install -y nginx mosquitto mosquitto-client libwebsockets-dev build-essential libcjson1 libcjson-dev
 ```
-
-# Configuration
-## Server
+## Repository configuration
 Please place the repository folder on `/var/www/`. You may need to have elevated privileges to do so.
 
-## NGINX
+## NGINX Configuration
 Please configure `/etc/nginx/site-enabled/default` the following way:
 ```
 upstream websocket{
@@ -48,11 +52,10 @@ server {
 }
 ```
 
-## Mosquitto
-### Enable Mosquitto service
+## Enable Mosquitto
 Use `sudo service mosquitto enable`.
 
-### Update init file
+## Mosquitto Configuration
 Edit `/etc/mosquitto/mosquitto.conf` the following way:
 ```
 # Place your local configuration in /etc/mosquitto/conf.d/
@@ -73,7 +76,7 @@ log_dest file /var/log/mosquitto/mosquitto.log
 include_dir /etc/mosquitto/conf.d
 allow_anonymous true
 ```
-## Chromium at the startup
+## Open Chromium at the startup
 Config `~/.config/lxsession/LXDE-pi/autostart` the following way:
 
 ```
