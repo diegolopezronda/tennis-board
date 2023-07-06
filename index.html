@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tennis Board</title>
 		<script src="./jquery-3.7.0.min.js"></script>
-		<script src="./mqtt-4.3.7.min.js"></script>
+		<script src="./mqttws31.js"></script>
 		<script>
 			$(function(){
 				var START  = Date.now();
+				var reset_count = 0;
 				var MATCH_TYPES = ["sd","us","au","rg","wb"];
 				var CALLS = ["0","15","30","40","AD"];
 				var current_set = 0;
@@ -19,31 +20,17 @@
 				var player_games = [0,0];
 				var player_sets = [0,0];
 				var server = 0;
-				var search_params = new URLSearchParams(window.location.search);
-				var player_0 = search_params.get('p1');
-				var player_1 = search_params.get('p2');
-				var title = search_params.get('title');
 				var RULES = MATCH_TYPES[0];
 				var MAX_SETS = RULES == MATCH_TYPES[0] ? 3 : 5;
 				var MAX_WON_SETS = RULES == MATCH_TYPES[0] ? 2 : 3;
-				$("#player-0-name").html(player_0);
-				$("#player-1-name").html(player_1);	
 				$("#match-rules").html(RULES);	
-				$("#match-name").html(title);
 				var update_clock = function(){
+					reset_count = 0;
 					var n = Date.now();
 					var d = new Date(n);
 					var e = n-START;
 					var z = new Date(e);
 
-					$("#elapsed-time").html(z.toLocaleTimeString("en-GB",{
-						timeZone:"UTC",
-						second:"2-digit",
-						minute:"2-digit",
-						hour:"2-digit",
-						hour12:false,
-						hourCycle:"h23"
-					}));
 					$("#match-datetime").html(d.toLocaleString("en-NZ",{
 						weekday:"short",
 						second:"2-digit",
@@ -53,6 +40,15 @@
 						month:"2-digit",
 						year:"2-digit",
 						hour12:false,
+					}));
+					if(game_over == true) return;
+					$("#elapsed-time").html(z.toLocaleTimeString("en-GB",{
+						timeZone:"UTC",
+						second:"2-digit",
+						minute:"2-digit",
+						hour:"2-digit",
+						hour12:false,
+						hourCycle:"h23"
 					}));
 				};
 				setInterval(update_clock,1000);
@@ -111,7 +107,8 @@
 						case 'wb':
 							t = (a == 6 && b == 6 && z < 4) || (a == 12 && b == 12 && z == 4);
 							if(t == true) return {a,b,t,s:false};
-							if(a == 13) return {a,b,t,s:true};
+							if(a == 7 && z < 4) return {a,b,t,s:true};
+							if(a == 13 && z == 4) return {a,b,t,s:true};
 							return {a,b,t,s:false};
 						case 'rg':
 							t = (a == 6 && b == 6 && z < 4);
@@ -135,6 +132,7 @@
 				}
 				
 				function switchService(){
+					if(game_over == true) return;
 					served = server;
 					server = server == 0 ? 1 : 0;
 					var serve_sign = tie_break == true ? "T" : "*";
@@ -181,22 +179,111 @@
 						switchService();
 					}
 				}
-
-				$("#player-0-game").click(function(){
-					point(0);
-				});
-				$("#player-1-game").click(function(){
-					point(1);
-				});
-				$("#match-rules").click(function(){
-					rotateRules();
-				});
-				$("#elapsed-time").click(function(){
-					START = Date.now();
-				});
-				$("#service").click(function(){
-					switchService();
-				});
+				var clientID = "Z"+Math.floor(Math.random() * 1000000);
+				client = new Paho.MQTT.Client(location.hostname+"/websocket",80,clientID);
+				client.onConnectionLost = onConnectionLost;
+				client.onMessageArrived = onMessageArrived;
+				client.connect({keepAliveInterval:21600,onSuccess:onConnect});
+				function onConnect() {
+					client.subscribe("/reset");
+					client.subscribe("/title");
+					client.subscribe("/player1");
+					client.subscribe("/player2");
+					client.subscribe("/point");
+					client.subscribe("/serve");
+					client.subscribe("/clock");
+					client.subscribe("/rules");
+					client.subscribe("/ping/"+clientID);
+					function sendPing(){
+						message = new Paho.MQTT.Message("helloworld");
+						message.destinationName = "/ping/"+clientID;
+						client.send(message);
+					}
+					setInterval(sendPing,1000);
+					$("#match-datetime").click(function(){
+						++reset_count;
+						if(reset_count == 3){
+							message = new Paho.MQTT.Message($(this).val());
+							message.destinationName = "/reset";
+							client.send(message);
+						}
+					});
+					$("#match-name").change(function(){
+						message = new Paho.MQTT.Message($(this).val());
+						message.destinationName = "/title";
+						client.send(message);
+					});
+					$("#player-0-name").change(function(){
+						message = new Paho.MQTT.Message($(this).val());
+						message.destinationName = "/player1";
+						client.send(message);
+					});
+					$("#player-1-name").change(function(){
+						message = new Paho.MQTT.Message($(this).val());
+						message.destinationName = "/player2";
+						client.send(message);
+					});
+					$("#player-0-game").click(function(){
+						message = new Paho.MQTT.Message("0");
+						message.destinationName = "/point";
+						client.send(message);
+					});
+					$("#player-1-game").click(function(){
+						message = new Paho.MQTT.Message("1");
+						message.destinationName = "/point";
+						client.send(message);
+					});
+					$("#match-rules").click(function(){
+						message = new Paho.MQTT.Message("");
+						message.destinationName = "/rules";
+						client.send(message);
+					});
+					$("#elapsed-time").click(function(){
+						message = new Paho.MQTT.Message("");
+						message.destinationName = "/clock";
+						client.send(message);
+					});
+					$("#service").click(function(){
+						message = new Paho.MQTT.Message("");
+						message.destinationName = "/serve";
+						client.send(message);
+					});
+					
+				}
+				function onConnectionLost(responseObject) {
+					if (responseObject.errorCode !== 0) {
+						alert("Connection Lost!");
+					}
+				}
+				function onMessageArrived(message) {
+					var d = message.destinationName;
+					switch(d){
+						case "/reset":
+							location.reload();
+							break;
+						case "/title":
+							$("#match-name").val(message.payloadString);
+							break;
+						case "/player1":
+							$("#player-0-name").val(message.payloadString);
+							break;
+						case "/player2":
+							$("#player-1-name").val(message.payloadString);
+							break;
+						case "/point":
+							point(Number(message.payloadString));
+							break;
+						case "/serve":
+							switchService();
+							break;
+						case "/clock":
+							START = Date.now();
+							break;
+						case "/rules":
+							rotateRules();
+							break;
+					}
+				}
 			});
 		</script>
 		<style>
@@ -205,7 +292,7 @@
 				background:#005500;
 				color:#FFCC00;
 				font-family:'VT323'!important;
-				font-size:120pt;
+				font-size: 9cqw;
 				text-transform:uppercase;
 				user-select:none!important;
 				margin:0px;
@@ -228,6 +315,7 @@
 				text-align:center;
 			}
 			.purple{
+				text-align:center;
 				color:white;
 				background-color:#306;
 			}
@@ -253,13 +341,24 @@
 			.digits{
 				width:8.4%!important;
 			}
+			input{
+				padding:0px;
+				margin:0px;
+				border:none;
+				background-color:#050;
+				font-family:'VT323'!important;
+				font-size: 9cqw;
+				text-transform:uppercase;
+				width:100%;
+			}
 		</style>
   </head>
   <body>
 		<table>
 			<tbody>
 				<tr class="purple">
-					<td id="match-name" colspan="9">
+					<td colspan="9">
+						<input id="match-name" class="purple" type="text" placeholder="Title" />
 					</td>
 				</tr>
 				<tr class="black">
@@ -290,7 +389,8 @@
 					</td>
 				</tr>
 				<tr id="player-0">
-					<td id="player-0-name" class="player-name">
+					<td class="player-name">
+						<input id="player-0-name" class="green" type="text" placeholder="PLAYER #1"/>
 					</td>
 					<td id="player-0-turn">
 *
@@ -311,7 +411,8 @@
 					</td>
 				</tr>
 				<tr id="player-1">
-					<td id="player-1-name" class="player-name">
+					<td class="player-name">
+						<input id="player-1-name" class="green" type="text" placeholder="PLAYER #1"/>
 					</td>
 					<td id="player-1-turn">
 					</td>
