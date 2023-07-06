@@ -4,361 +4,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tennis Board</title>
-		<script src="./jquery-3.7.0.min.js"></script>
-		<script src="./mqttws31.js"></script>
-		<script>
-			$(function(){
-				var START  = Date.now();
-				var reset_count = 0;
-				var MATCH_TYPES = ["sd","us","au","rg","wb"];
-				var CALLS = ["0","15","30","40","AD"];
-				var current_set = 0;
-				var current_game = 0;
-				var tie_break = false;
-				var game_over = false;
-				var player_points = [0,0];
-				var player_games = [0,0];
-				var player_sets = [0,0];
-				var server = 0;
-				var RULES = MATCH_TYPES[0];
-				var MAX_SETS = RULES == MATCH_TYPES[0] ? 3 : 5;
-				var MAX_WON_SETS = RULES == MATCH_TYPES[0] ? 2 : 3;
-				$("#match-rules").html(RULES);	
-				var update_clock = function(){
-					reset_count = 0;
-					var n = Date.now();
-					var d = new Date(n);
-					var e = n-START;
-					var z = new Date(e);
-
-					$("#match-datetime").html(d.toLocaleString("en-NZ",{
-						weekday:"short",
-						second:"2-digit",
-						minute:"2-digit",
-						hour:"2-digit",
-						day:"2-digit",
-						month:"2-digit",
-						year:"2-digit",
-						hour12:false,
-					}));
-					if(game_over == true) return;
-					$("#elapsed-time").html(z.toLocaleTimeString("en-GB",{
-						timeZone:"UTC",
-						second:"2-digit",
-						minute:"2-digit",
-						hour:"2-digit",
-						hour12:false,
-						hourCycle:"h23"
-					}));
-				};
-				setInterval(update_clock,1000);
-				/*
-				* a : player points before scoring
-				* b : opponent points before scoring
-				* t: tie break
-				*/
-				function getPointResults(a,b,t){
-					var d = a+(t*1) - b;
-					var x = t == true ? 6 : 3;
-					var g = (d >= 2 && a >= x);
-					var s = false;
-					if(g == true) return {a:0,b:0,c:0,d:0,t:false,g,s:true};
-					if(t == true){
-						++a;
-						s = ((a+b)%2) == 1;
-						return {a,b,c:a,d:b,t,g,s};
-					} 
-					switch(a){
-						case 3:
-							switch(b){
-								case 3:
-									a = 4;
-									break;
-								case 4:
-									b = 3;
-									break;
-								default:
-									return {a:0,b:0,c:0,d:0,t:false,g:true,s:true};
-							}
-							break;
-						case 4: 
-								return {a:0,b:0,c:0,d:0,t:false,g:true,s:true};
-						default:
-							++a;
-					}
-					var c = CALLS[a];
-					var d = CALLS[b];
-					return {a,b,c,d,t,g,s};
-				}
-
-				function getGameResults(a,b,r,z){
-					++a;
-					var v  = ((a-b) >= 2 && a >= 6);
-					var t = false;
-					if(v == true) return {a,b,t,s:true};
-					switch(r){
-						case 'sd':
-						case 'au':
-						case 'us':
-							t = a == 6 && b == 6;
-							if(t == true) return {a,b,t,s:false};
-							if(a == 7) return {a,b,t,s:true};
-							return {a,b,t,s:false};
-						case 'wb':
-							t = (a == 6 && b == 6 && z < 4) || (a == 12 && b == 12 && z == 4);
-							if(t == true) return {a,b,t,s:false};
-							if(a == 7 && z < 4) return {a,b,t,s:true};
-							if(a == 13 && z == 4) return {a,b,t,s:true};
-							return {a,b,t,s:false};
-						case 'rg':
-							t = (a == 6 && b == 6 && z < 4);
-							if(t == true) return {a,b,t,s:false};
-							return {a,b,t,s:false};
-						default:
-							t = (a == 6 && b == 6 && z < 4);
-							if(t == true) return {a,b,t,s:false};
-							return {a,b,t,s:false};
-					}
-				}
-
-				function rotateRules(){
-					if(game_over == true) return;
-					var i = MATCH_TYPES.indexOf(RULES)+1;
-					if(i == MATCH_TYPES.length) i = 0;
-					RULES = MATCH_TYPES[i];
-					MAX_SETS = RULES == MATCH_TYPES[0] ? 3 : 5;
-					MAX_WON_SETS = RULES == MATCH_TYPES[0] ? 2 : 3;
-					$("#match-rules").html(RULES);	
-				}
-				
-				function switchService(){
-					if(game_over == true) return;
-					served = server;
-					server = server == 0 ? 1 : 0;
-					var serve_sign = tie_break == true ? "T" : "*";
-					$("#player-"+server+"-turn").html(serve_sign);	
-					$("#player-"+served+"-turn").html("");
-				}
-
-				var point = function(player){
-					if(game_over == true) return;
-					var opponent = player == 0 ? 1 : 0;
-					var point_results = getPointResults(player_points[player],player_points[opponent],tie_break);
-					var new_game = point_results.g;
-					player_points[player] = point_results.a;
-					player_points[opponent] = point_results.b;
-					tie_break = point_results.t;
-					$("#player-"+player+"-game").html(point_results.c);
-					$("#player-"+opponent+"-game").html(point_results.d);
-					//GAME
-					if(new_game == true){
-						var game_results = getGameResults(player_games[player],player_games[opponent],RULES,current_set);
-						player_games[player] = game_results.a;
-						tie_break = game_results.t;
-						$("#player-"+player+"-set-"+current_set).html(game_results.a);
-						var new_set = game_results.s;
-						if(new_set == true){
-							tie_break = false;
-							player_sets[player] +=1
-							if(player_sets[player] == MAX_WON_SETS){
-								$("#player-"+player+"-turn").html("W");	
-								$("#player-"+opponent+"-turn").html("");
-								game_over = true;
-								return;
-							}else{
-								current_set +=1;
-								player_games[player] = 0;
-								player_games[opponent] = 0;
-								$("#player-"+player+"-set-"+current_set).html(player_games[player]);
-								$("#player-"+opponent+"-set-"+current_set).html(player_games[opponent]);
-							}
-						}
-					}
-					//SERVICE
-					if(point_results.s == true){
-						switchService();
-					}
-				}
-				var clientID = "Z"+Math.floor(Math.random() * 1000000);
-				client = new Paho.MQTT.Client(location.hostname+"/websocket",80,clientID);
-				client.onConnectionLost = onConnectionLost;
-				client.onMessageArrived = onMessageArrived;
-				client.connect({keepAliveInterval:21600,onSuccess:onConnect});
-				function onConnect() {
-					client.subscribe("/reset");
-					client.subscribe("/title");
-					client.subscribe("/player1");
-					client.subscribe("/player2");
-					client.subscribe("/point");
-					client.subscribe("/serve");
-					client.subscribe("/clock");
-					client.subscribe("/rules");
-					client.subscribe("/ping/"+clientID);
-					function sendPing(){
-						message = new Paho.MQTT.Message("helloworld");
-						message.destinationName = "/ping/"+clientID;
-						client.send(message);
-					}
-					setInterval(sendPing,1000);
-					$("#match-datetime").click(function(){
-						++reset_count;
-						if(reset_count == 3){
-							message = new Paho.MQTT.Message($(this).val());
-							message.destinationName = "/reset";
-							client.send(message);
-						}
-					});
-					$("#match-name").change(function(){
-						message = new Paho.MQTT.Message($(this).val());
-						message.destinationName = "/title";
-						client.send(message);
-					});
-					$("#player-0-name").change(function(){
-						message = new Paho.MQTT.Message($(this).val());
-						message.destinationName = "/player1";
-						client.send(message);
-					});
-					$("#player-1-name").change(function(){
-						message = new Paho.MQTT.Message($(this).val());
-						message.destinationName = "/player2";
-						client.send(message);
-					});
-					$("#player-0-game").click(function(){
-						message = new Paho.MQTT.Message("0");
-						message.destinationName = "/point";
-						client.send(message);
-					});
-					$("#player-1-game").click(function(){
-						message = new Paho.MQTT.Message("1");
-						message.destinationName = "/point";
-						client.send(message);
-					});
-					$("#match-rules").click(function(){
-						message = new Paho.MQTT.Message("");
-						message.destinationName = "/rules";
-						client.send(message);
-					});
-					$("#elapsed-time").click(function(){
-						message = new Paho.MQTT.Message("");
-						message.destinationName = "/clock";
-						client.send(message);
-					});
-					$("#service").click(function(){
-						message = new Paho.MQTT.Message("");
-						message.destinationName = "/serve";
-						client.send(message);
-					});
-					
-				}
-				function onConnectionLost(responseObject) {
-					if (responseObject.errorCode !== 0) {
-						alert("Connection Lost!");
-					}
-				}
-				function onMessageArrived(message) {
-					var d = message.destinationName;
-					switch(d){
-						case "/reset":
-							location.reload();
-							break;
-						case "/title":
-							$("#match-name").val(message.payloadString);
-							break;
-						case "/player1":
-							$("#player-0-name").val(message.payloadString);
-							break;
-						case "/player2":
-							$("#player-1-name").val(message.payloadString);
-							break;
-						case "/point":
-							point(Number(message.payloadString));
-							break;
-						case "/serve":
-							switchService();
-							break;
-						case "/clock":
-							START = Date.now();
-							break;
-						case "/rules":
-							rotateRules();
-							break;
-					}
-				}
-			});
-		</script>
-		<style>
-			@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-			body,html{
-				background:#005500;
-				color:#FFCC00;
-				font-family:'VT323'!important;
-				font-size: 9cqw;
-				text-transform:uppercase;
-				user-select:none!important;
-				margin:0px;
-				padding:0px;
-				width:100vw;
-				height:100vh;
-			}
-			table{
-				border-collapse:collapse;
-				width:100vw;
-				height:100vh;
-				padding:0px;
-				margin:0px;
-				border:none;
-			}
-			table .green td{
-				border: #050 5px solid;
-			}
-			table * td{
-				text-align:center;
-			}
-			.purple{
-				text-align:center;
-				color:white;
-				background-color:#306;
-			}
-			.black{
-				color:white;
-				background-color:black;
-			}
-			.gold{
-				color:#050;
-				background-color:#FC0;
-			}
-			.green{
-				color:#FC0;
-				background-color:#050;
-			}
-			.gold-black{
-				color:#FC0;
-				background-color:#000;
-			}
-			.player-name{
-				text-align:left;
-			}
-			.digits{
-				width:8.4%!important;
-			}
-			input{
-				padding:0px;
-				margin:0px;
-				border:none;
-				background-color:#050;
-				font-family:'VT323'!important;
-				font-size: 9cqw;
-				text-transform:uppercase;
-				width:100%;
-			}
-		</style>
+		<link rel="stylesheet" href="./css/style.css"/>
+		<script src="./js/jquery-3.7.0.min.js"></script>
+		<script src="./js/mqttws31.js"></script>
+		<script src="./js/tennis-rules.js"></script>
+		<script src="./js/main.js"></script>
   </head>
   <body>
 		<table>
 			<tbody>
 				<tr class="purple">
 					<td colspan="9">
-						<input id="match-name" class="purple" type="text" placeholder="Title" />
+						<input 
+							id="match-name" 
+							class="purple" 
+							type="text" 
+							placeholder="Title" 
+						/>
 					</td>
 				</tr>
 				<tr class="black">
@@ -390,7 +52,12 @@
 				</tr>
 				<tr id="player-0">
 					<td class="player-name">
-						<input id="player-0-name" class="green" type="text" placeholder="PLAYER #1"/>
+						<input 
+							id="player-0-name" 
+							class="green" 
+							type="text" 
+							placeholder="Player #1"
+						/>
 					</td>
 					<td id="player-0-turn">
 *
@@ -412,7 +79,12 @@
 				</tr>
 				<tr id="player-1">
 					<td class="player-name">
-						<input id="player-1-name" class="green" type="text" placeholder="PLAYER #1"/>
+						<input 
+							id="player-1-name" 
+							class="green" 
+							type="text" 
+							placeholder="Player #2"
+						/>
 					</td>
 					<td id="player-1-turn">
 					</td>

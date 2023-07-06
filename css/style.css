@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+html,body{
+	background:#005500;
+	color:#FFCC00;
+	font-family:'VT323'!important;
+	font-size: 9cqw;
+	text-transform:uppercase;
+	user-select:none!important;
+	margin:0px;
+	padding:0px;
+	width:100vw;
+	height:100vh;
+}
+
+table{
+	border-collapse:collapse;
+	width:100vw;
+	height:100vh;
+	padding:0px;
+	margin:0px;
+	border:none;
+}
+
+table .green td{
+	border: #050 5px solid;
+}
+
+table * td{
+	text-align:center;
+}
+
+.purple{
+	text-align:center;
+	color:white;
+	background-color:#306;
+}
+
+.black{
+	color:white;
+	background-color:black;
+}
+
+.gold{
+	color:#050;
+	background-color:#FC0;
+}
+
+.green{
+	color:#FC0;
+	background-color:#050;
+}
+
+.gold-black{
+	color:#FC0;
+	background-color:#000;
+}
+
+.player-name{
+	text-align:left;
+}
+
+.digits{
+	width:8.4%!important;
+}
+
+input{
+	padding:0px;
+	margin:0px;
+	border:none;
+	background-color:#050;
+	font-family:'VT323'!important;
+	font-size: 9cqw;
+	text-transform:uppercase;
+	width:100%;
+}
