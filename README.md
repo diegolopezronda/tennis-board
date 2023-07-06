@@ -121,3 +121,8 @@ Config `~/.config/lxsession/LXDE-pi/autostart` the following way:
 ```
 ## Restart
 With all of this, you should be able to run the board when rebooting with `sudo reboot now`.
+
+# To-Do
+* Adding hotspot to raspberry pi.
+* Adding synchronization between devices when connection is lost.
+
