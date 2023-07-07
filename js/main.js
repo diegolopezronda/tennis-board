@@ -182,6 +182,9 @@ $(function(){
 		});
 		$("#sync-push").click(function(){
 			var m = {
+				title:$("#match-name").val(),
+				player1:$("#player-0-name").val(),
+				player2:$("#player-1-name").val(),
 				clientID,
 				history,
 				server,
@@ -254,6 +257,9 @@ $(function(){
 				var m = JSON.parse(message.payloadString);
 				if(m.clientID == clientID) return;
 				if(m.request != null && m.request != sync_request) return; 
+				$("#match-name").val(m.title);
+				$("#player-0-name").val(m.player1);
+				$("#player-1-name").val(m.player2);
 				RULES = m.rules;
 				START = m.start;
 				var l = m.history.length;
@@ -279,6 +285,9 @@ $(function(){
 			case "/sync/in":
 				if(message.payloadString == sync_request) return;
 				var m = {
+					title:$("#match-name").val(),
+					player1:$("#player-0-name").val(),
+					player2:$("#player-1-name").val(),
 					clientID,
 					history,
 					server,
