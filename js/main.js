@@ -1,5 +1,5 @@
 $(function(){
-	const START  = Date.now();
+	var START  = Date.now();
 	const SERVE_SIGN = "*";
 	const TIEBREAK_SIGN = "T";
 	const WINNER_SIGN = "W";

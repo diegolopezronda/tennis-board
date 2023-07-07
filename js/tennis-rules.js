@@ -15,7 +15,7 @@ const CALLS = ["0","15","30","40","AD"];
 function getMaxSets(rules){
 	switch(rules){
 		case STANDARD:
-			return 3:
+			return 3;
 		case US_OPEN:
 		case AUSTRALIA_OPEN:
 		case ROLAND_GARROS:
@@ -29,7 +29,7 @@ function getMaxSets(rules){
 function getMaxWonSets(rules){
 	switch(rules){
 		case STANDARD:
-			return 2:
+			return 2;
 		case US_OPEN:
 		case AUSTRALIA_OPEN:
 		case ROLAND_GARROS:
