@@ -12,6 +12,8 @@ $(function(){
 	var player_games = [0,0];
 	var player_sets = [0,0];
 	var reset_count = 0;
+	var push_count = 0;
+	var pull_count = 0;
 	var RULES = STANDARD;
 	var MAX_SETS = getMaxSets(RULES);
 	var MAX_WON_SETS = getMaxWonSets(RULES);
@@ -34,6 +36,8 @@ $(function(){
 
 	function updateClock(){
 		reset_count = 0;
+		push_count = 0;
+		pull_count = 0;
 		var n = Date.now();
 		var d = new Date(n);
 		var e = n-START;
@@ -181,6 +185,9 @@ $(function(){
 			client.send(message);
 		});
 		$("#sync-push").click(function(){
+			++push_count;
+			if(push_count < 3) return;
+			push_count = 0;
 			var m = {
 				title:$("#match-name").val(),
 				player1:$("#player-0-name").val(),
@@ -217,17 +224,20 @@ $(function(){
 			client.send(message);
 		});
 		$("#sync-pull").click(function(){
+			++pull_count;
+			if(pull_count < 3) return;
+			pull_count = 0;
 			message = new Paho.MQTT.Message(sync_request);
 			message.destinationName = "/sync/in";
 			client.send(message);
 		});
 		$("#reset").click(function(){
 			++reset_count;
-			if(reset_count == 3){
-				message = new Paho.MQTT.Message($(this).val());
-				message.destinationName = "/reset";
-				client.send(message);
-			}
+			if(reset_count < 3) return;
+			reset_count = 0;
+			message = new Paho.MQTT.Message($(this).val());
+			message.destinationName = "/reset";
+			client.send(message);
 		});
 	}
 
