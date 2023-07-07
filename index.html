@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tennis Board</title>
+		<link rel="stylesheet" href="./css/font.css"/>
 		<link rel="stylesheet" href="./css/style.css"/>
 		<script src="./js/jquery-3.7.0.min.js"></script>
 		<script src="./js/mqttws31.js"></script>
@@ -24,14 +25,14 @@
 					</td>
 				</tr>
 				<tr class="black">
-					<td class="player-name gold-black">
-						<span id="match-rules"></span>
-						<span id="elapsed-time"></span>
+					<td class="player-name gold-black digits" id="match-rules">
+					</td>
+					<td id="elapsed-time" class="player-name gold-black">
 					</td>
 					<td class="digits gold-black" id="service">
 						S
 					</td>
-					<td class="digits">
+					<td class="digits gold-black" id="sync-push">
 						P
 					</td>
 					<td class="digits">
@@ -51,7 +52,7 @@
 					</td>
 				</tr>
 				<tr id="player-0">
-					<td class="player-name">
+					<td class="player-name" colspan="2">
 						<input 
 							id="player-0-name" 
 							class="green" 
@@ -78,7 +79,7 @@
 					</td>
 				</tr>
 				<tr id="player-1">
-					<td class="player-name">
+					<td class="player-name" colspan="2">
 						<input 
 							id="player-1-name" 
 							class="green" 
@@ -104,8 +105,14 @@
 					</td>
 				</tr>
 				<tr>
-					<td id="match-datetime" class="black" colspan="9">
+					<td id="sync-pull" class="red-black">
+						&bullet;
+					</td>
+					<td id="match-datetime" class="black" colspan="7">
 						LOADING DATE
+					</td>
+					<td id="reset" class="gold-black">
+						&bullet;
 					</td>
 				</tr>
 			</tbody>

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 html,body{
 	background:#005500;
 	color:#FFCC00;
@@ -48,6 +47,21 @@ table * td{
 .green{
 	color:#FC0;
 	background-color:#050;
+}
+
+.red-black{
+	color:#F00;
+	background-color:#000;
+}
+
+.green-black{
+	color:#050;
+	background-color:#000;
+}
+
+.led-black{
+	color:#0C0;
+	background-color:#000;
 }
 
 .gold-black{

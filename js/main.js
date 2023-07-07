@@ -15,6 +15,22 @@ $(function(){
 	var RULES = STANDARD;
 	var MAX_SETS = getMaxSets(RULES);
 	var MAX_WON_SETS = getMaxWonSets(RULES);
+	var history = [];
+
+	function init(){
+		server = 0;
+		current_set = 0;
+		current_game = 0;
+		tie_break = false;
+		game_over = false;
+		player_points = [0,0];
+		player_games = [0,0];
+		player_sets = [0,0];
+		reset_count = 0;
+		MAX_SETS = getMaxSets(RULES);
+		MAX_WON_SETS = getMaxWonSets(RULES);
+		history = [];
+	}
 
 	function updateClock(){
 		reset_count = 0;
@@ -64,6 +80,7 @@ $(function(){
 
 	function point(player){
 		if(game_over == true) return;
+		history.push(player);
 		var opponent = player == 0 ? 1 : 0;
 		var point_results = getPointResults(
 			player_points[player],
@@ -121,6 +138,7 @@ $(function(){
 	client.onConnectionLost = onConnectionLost;
 	client.onMessageArrived = onMessageArrived;
 	client.connect({keepAliveInterval:21600,onSuccess:onConnect});
+	var sync_request = clientID+"."+Date.now();
 
 	function sendPing(){
 		message = new Paho.MQTT.Message("ping");
@@ -129,27 +147,50 @@ $(function(){
 	}
 
 	function onConnect() {
-		client.subscribe("/reset");
+		$("#sync-pull").removeClass("red-black").addClass("led-black");
 		client.subscribe("/title");
+		client.subscribe("/rules");
+		client.subscribe("/clock");
+		client.subscribe("/serve");
+		client.subscribe("/sync/out");
 		client.subscribe("/player1");
 		client.subscribe("/player2");
 		client.subscribe("/point");
-		client.subscribe("/serve");
-		client.subscribe("/clock");
-		client.subscribe("/rules");
+		client.subscribe("/sync/in");
+		client.subscribe("/reset");
 		client.subscribe("/ping/"+clientID);
 		setInterval(sendPing,1000);
-		$("#match-datetime").click(function(){
-			++reset_count;
-			if(reset_count == 3){
-				message = new Paho.MQTT.Message($(this).val());
-				message.destinationName = "/reset";
-				client.send(message);
-			}
-		});
 		$("#match-name").change(function(){
 			message = new Paho.MQTT.Message($(this).val());
 			message.destinationName = "/title";
+			client.send(message);
+		});
+		$("#match-rules").click(function(){
+			message = new Paho.MQTT.Message("");
+			message.destinationName = "/rules";
+			client.send(message);
+		});
+		$("#elapsed-time").click(function(){
+			message = new Paho.MQTT.Message("");
+			message.destinationName = "/clock";
+			client.send(message);
+		});
+		$("#service").click(function(){
+			message = new Paho.MQTT.Message("");
+			message.destinationName = "/serve";
+			client.send(message);
+		});
+		$("#sync-push").click(function(){
+			var m = {
+				clientID,
+				history,
+				server,
+				rules:RULES,
+				start:START,
+				request:null
+			};
+			message = new Paho.MQTT.Message(JSON.stringify(m));
+			message.destinationName = "/sync/out";
 			client.send(message);
 		});
 		$("#player-0-name").change(function(){
@@ -172,37 +213,59 @@ $(function(){
 			message.destinationName = "/point";
 			client.send(message);
 		});
-		$("#match-rules").click(function(){
-			message = new Paho.MQTT.Message("");
-			message.destinationName = "/rules";
+		$("#sync-pull").click(function(){
+			message = new Paho.MQTT.Message(sync_request);
+			message.destinationName = "/sync/in";
 			client.send(message);
 		});
-		$("#elapsed-time").click(function(){
-			message = new Paho.MQTT.Message("");
-			message.destinationName = "/clock";
-			client.send(message);
-		});
-		$("#service").click(function(){
-			message = new Paho.MQTT.Message("");
-			message.destinationName = "/serve";
-			client.send(message);
+		$("#reset").click(function(){
+			++reset_count;
+			if(reset_count == 3){
+				message = new Paho.MQTT.Message($(this).val());
+				message.destinationName = "/reset";
+				client.send(message);
+			}
 		});
 	}
 
 	function onConnectionLost(responseObject) {
 		if (responseObject.errorCode !== 0) {
-			alert("Connection Lost!");
+			$("#sync-pull").removeClass("led-black").addClass("red-black");
+			client.connect({keepAliveInterval:21600,onSuccess:onConnect});
 		}
 	}
 
 	function onMessageArrived(message) {
 		var d = message.destinationName;
 		switch(d){
-			case "/reset":
-				location.reload();
-				break;
 			case "/title":
 				$("#match-name").val(message.payloadString);
+				break;
+			case "/rules":
+				rotateRules();
+				break;
+			case "/clock":
+				START = Date.now();
+				break;
+			case "/serve":
+				switchService();
+				break;
+			case "/sync/out":
+				var m = JSON.parse(message.payloadString);
+				if(m.clientID == clientID) return;
+				if(m.request != null && m.request != sync_request) return; 
+				RULES = m.rules;
+				START = m.start;
+				var l = m.history.length;
+				init();	
+				updateClock();
+				for(var a=0;a<l;a++){
+					point(m.history[a]);
+				}
+				if(server != m.server){
+					switchService();
+				}
+				sync_request = clientID+"."+Date.now();
 				break;
 			case "/player1":
 				$("#player-0-name").val(message.payloadString);
@@ -213,14 +276,22 @@ $(function(){
 			case "/point":
 				point(Number(message.payloadString));
 				break;
-			case "/serve":
-				switchService();
+			case "/sync/in":
+				if(message.payloadString == sync_request) return;
+				var m = {
+					clientID,
+					history,
+					server,
+					rules:RULES,
+					start:START,
+					request:message.payloadString
+				};
+				response = new Paho.MQTT.Message(JSON.stringify(m));
+				response.destinationName = "/sync/out";
+				client.send(response);
 				break;
-			case "/clock":
-				START = Date.now();
-				break;
-			case "/rules":
-				rotateRules();
+			case "/reset":
+				location.reload();
 				break;
 		}
 	}

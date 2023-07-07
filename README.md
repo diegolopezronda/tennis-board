@@ -130,6 +130,3 @@ With all of this, you should be able to run the board when rebooting with `sudo 
 
 # To-Do
 * Adding hotspot to raspberry pi.
-* Adding synchronization between devices when connection is lost.
-* Store the display font locally.
-
